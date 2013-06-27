@@ -419,6 +419,24 @@
   `(binding [*exec-mode* :query]
      ~@body))
 
+(defn- wrap-sql-param [param]
+  "make the strings strings"
+  (if
+    (string? param) (str "\"" param "\"")
+  (str param)))
+
+(defn- replace-params [sql-str params]
+  "replace the ?'s with the param list"
+  (if (empty? params) sql-str
+  (let [param (first params)
+        new-str (string/replace-first sql-str #"\?" (wrap-sql-param param))]
+  (replace-params new-str (rest params)))))
+
+(defmacro sql-only-params [query]
+  "output the SQL with the params in value list"
+  `(let [query-obj# (query-only ~query)]
+  (replace-params (:sql-str query-obj#) (:params query-obj#))))
+
 (defn as-sql
   "Force a query to return a string of SQL when (exec) is called."
   [query]
